@@ -12,7 +12,14 @@ h3{
 .topnav{
     overflow: hidden;
     background-color: #131720;
-    padding: 15px;
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.topnav .active{
+    text-decoration: underline;
+    font-weight: 900;
+    font-size: 1.5rem;
+    margin-top: -10px;
 }
 .topnav a{
     float: left;
@@ -22,7 +29,16 @@ h3{
     padding: 14px 16px;
     text-decoration: none;
     font-size: 1.2rem;
-    /*text-transform: uppercase; */
+    text-transform: uppercase; 
+}
+.topnav a:hover{
+    text-decoration: underline;
+    font-size: 1.3rem;
+    transition: 1s;
+}
+.topnav a:active{
+    font-size: 1.2rem;
+    text-decoration: none;
 }
 .topnav .search-container{
     float: right;
@@ -35,6 +51,12 @@ form{
     border-radius: 11px;
     display: flex;
     align-items: center;
+    display: flex;
+    justify-content: space-between;
+}
+.search-img{
+    width: 15px;
+    margin-right: 10px;
 }
 input {
     all: unset;
