@@ -9,8 +9,18 @@
 <body>
     <div class="topnav">
         <a class = "active" href="index1.html">Movies</a>
-        <a href="index2.html">Books</a>
-        <a href="index3.html">YouTube</a>
+        <a class="inactive" href="index2.html">Books</a>
+        <div class="voice-selector-container">
+            <label for="voice-language" style="color: white; margin-right: 5px; font-size: 1.2rem;">VOICE</label>
+            <select id="voice-language-select">
+                <option value="en-US-amara">Amara (F)</option>
+                <option value="en-US-marcus">Marcus (M)</option>
+                <option value="en-US-natalie">Natalie (F)</option>
+                <option value="en-US-dylan">Dylan (M)</option>
+                <option value="en-US-maverick">Maverick (M)</option>
+                <option value="en-US-naomi">Naomi (F)</option>
+                </select>
+        </div>
         <div class="search-container">
             <form role="search" id="form">
                 <input type="search" id="query" name="q" placeholder="Search...">
@@ -25,7 +35,7 @@
         <div class="column">
             <div class="card">
                 <centre><img src="clouds.png" class="thumbnail"></centre>
-                <h3>Movie Title</h3>
+                <h4>Movie Title</h4>
             </div>
         </div>
     </div>  -->
