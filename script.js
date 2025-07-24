@@ -3,7 +3,7 @@ const IMG_PATH = "https://image.tmdb.org/t/p/w1280";
 const SEARCHAPI = "https://api.themoviedb.org/3/search/movie?&api_key=cdda24a5df571a4d8d592c08e95d47dc&query=";
 
 const MURF_API_ENDPOINT = "https://api.murf.ai/v1/speech/generate"; 
-const MURF_VOICE_ID = "en-US-amara"; 
+let selectedMurfVoiceId = "en-US-amara";
 
 let currentAudio = null; 
 let hoverTimeout = null; 
@@ -11,6 +11,23 @@ let hoverTimeout = null;
 const main = document.getElementById("section");
 const form = document.getElementById("form");
 const search = document.getElementById("query");
+const voiceLanguageSelect = document.getElementById("voice-language-select");
+
+if (voiceLanguageSelect) {
+    selectedMurfVoiceId = voiceLanguageSelect.value;
+}
+
+if (voiceLanguageSelect) {
+    voiceLanguageSelect.addEventListener('change', (event) => {
+        selectedMurfVoiceId = event.target.value;
+        console.log("Voice language changed to:", selectedMurfVoiceId);
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            currentAudio = null;
+        }
+    });
+}
 
 returnMovie(APILINK);
 
@@ -35,7 +52,7 @@ function returnMovie(url) {
 
                 image.dataset.overview = element.overview;
 
-                const title = document.createElement('h3');
+                const title = document.createElement('h4');
                 title.setAttribute('id', 'title');
 
                 const centre = document.createElement('centre');
@@ -98,8 +115,10 @@ async function playSummaryAudio(textToSpeak) {
             },
             body: JSON.stringify({
                 text: textToSpeak,
-                voice_id: MURF_VOICE_ID,
+                voice_id: selectedMurfVoiceId,
                 rate: -25,
+                pitch: -5,
+                style: 'conversational',
             }),
         });
 
