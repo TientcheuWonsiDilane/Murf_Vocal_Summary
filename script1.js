@@ -1,18 +1,13 @@
-const GOOGLE_API_BASE = "https://www.googleapis.com/books/v1/volumes";
-const INITIAL_BOOKS_SEARCH = "fiction"; 
-const GOOGLE_API_KEY = " AIzaSyCI-BcBRXIU6Ca0IBgut35nRmtFOEUWX2c";
+const BACKEND_BASE_URL = "http://localhost:3000"; 
 
-const MURF_API_ENDPOINT = "https://api.murf.ai/v1/speech/generate";
-let selectedMurfVoiceId = "en-US-amara"; 
-const MURF_API_KEY = "ap2_8a5246af-22f3-48b1-808e-db7da4a1ccbd";
-
+let selectedMurfVoiceId = "en-US-natalie";
 let currentAudio = null;
 let hoverTimeout = null;
 
 const main = document.getElementById("section");
 const form = document.getElementById("form");
 const search = document.getElementById("query");
-const voiceLanguageSelect = document.getElementById("voice-language-select"); 
+const voiceLanguageSelect = document.getElementById("voice-language-select");
 
 if (voiceLanguageSelect) {
     selectedMurfVoiceId = voiceLanguageSelect.value;
@@ -30,8 +25,7 @@ if (voiceLanguageSelect) {
     });
 }
 
-
-returnBooks(`${GOOGLE_API_BASE}?q=${encodeURIComponent(INITIAL_BOOKS_SEARCH)}&maxResults=25&key=${GOOGLE_API_KEY}`);
+returnBooks(`${BACKEND_BASE_URL}/api/books/initial`);
 
 async function returnBooks(url) {
     try {
@@ -42,11 +36,11 @@ async function returnBooks(url) {
         const data = await response.json();
         console.log("Google Books API response:", data);
 
+        main.innerHTML = '';
 
         if (data.items && data.items.length > 0) {
             data.items.forEach(book => {
                 const volumeInfo = book.volumeInfo;
-
                 const div_card = document.createElement('div');
                 div_card.setAttribute('class', 'card');
 
@@ -92,7 +86,7 @@ async function returnBooks(url) {
                 div_row.appendChild(div_column);
 
                 main.appendChild(div_row);
-
+                
                 let timeoutId;
 
                 image.addEventListener('mouseenter', () => {
@@ -102,11 +96,11 @@ async function returnBooks(url) {
                     timeoutId = setTimeout(() => {
                         console.log(`Mouse hovered over: ${volumeInfo.title}`);
                         const bookDescription = image.dataset.description;
-                        if (bookDescription && bookDescription !== 'No description available.') { 
+                        if (bookDescription && bookDescription !== 'No description available.') {
                             const TextToSpeak = `${volumeInfo.title}. ${volumeInfo.authors ? `By ${volumeInfo.authors.join(', ')}. ` : ''}[pause 0.3s] Summary:[pause 0.75s] ${bookDescription}`;
                             playSummaryAudio(TextToSpeak);
                         } else {
-                             console.log(`No description available for ${volumeInfo.title}. Skipping audio summary.`);
+                            console.log(`No description available for ${volumeInfo.title}. Skipping audio summary.`);
                         }
                     }, 1000);
                 });
@@ -140,29 +134,40 @@ async function playSummaryAudio(textToSpeak) {
         currentAudio = null;
     }
 
+    if (!selectedMurfVoiceId) {
+        console.error("No Murf voice selected. Cannot generate audio.");
+        alert("Please select a voice language from the dropdown menu.");
+        return;
+    }
+
     try {
         const text = textToSpeak.length > 800 ? textToSpeak.substring(0, 800) + "..." : textToSpeak;
-        console.log("Requesting audio from Murf AI for:", text.substring(0, 100) + "...");
+        console.log("Requesting audio from Murf AI via proxy for:", text.substring(0, 100) + "...");
 
-        const response = await fetch(MURF_API_ENDPOINT, {
+        const response = await fetch(`${BACKEND_BASE_URL}/api/murf/generate-audio`, {
             method: 'POST',
             headers: {
-                'api-key': MURF_API_KEY,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 text: text,
                 voice_id: selectedMurfVoiceId,
-                rate: -30, 
-                pitch: -3,
-                style: 'narative',
+                rate: -22,
+                pitch: -5,
+                style: 'conversational',
             }),
         });
 
-        const data = await response.json();
-        console.log("Murf AI response:", data);
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Backend Proxy Error:", response.status, response.statusText, errorData);
+            throw new Error(`Proxy Error: ${response.statusText}. Details: ${errorData.error || 'Unknown error'}`);
+        }
 
-        const audioUrl = data.audioFile;
+        const data = await response.json();
+        console.log("Murf AI response (via proxy):", data);
+
+        const audioUrl = data.audioFile ;
 
         if (audioUrl) {
             currentAudio = new Audio(audioUrl);
@@ -179,19 +184,19 @@ async function playSummaryAudio(textToSpeak) {
 
 form.addEventListener("submit", (e) => {
     e.preventDefault();
-    main.innerHTML = ''; 
+    main.innerHTML = '';
 
     if (currentAudio) {
         currentAudio.pause();
         currentAudio.currentTime = 0;
         currentAudio = null;
     }
-    clearTimeout(hoverTimeout); 
+    clearTimeout(hoverTimeout);
 
     const searchItem = search.value;
 
     if (searchItem) {
-        const searchURL = `${GOOGLE_API_BASE}?q=${encodeURIComponent(searchItem)}&maxResults=25&printType=books&orderBy=relevance&key=${GOOGLE_API_KEY}`;
+        const searchURL = `${BACKEND_BASE_URL}/api/books/search?q=${encodeURIComponent(searchItem)}`;
         returnBooks(searchURL);
         search.value = '';
     }

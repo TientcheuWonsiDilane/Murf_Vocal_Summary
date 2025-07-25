@@ -1,12 +1,10 @@
-const APILINK = "https://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&api_key=cdda24a5df571a4d8d592c08e95d47dc&page=1";
-const IMG_PATH = "https://image.tmdb.org/t/p/w1280";
-const SEARCHAPI = "https://api.themoviedb.org/3/search/movie?&api_key=cdda24a5df571a4d8d592c08e95d47dc&query=";
+const BACKEND_BASE_URL = "http://localhost:3000"; 
 
-const MURF_API_ENDPOINT = "https://api.murf.ai/v1/speech/generate"; 
-let selectedMurfVoiceId = "en-US-amara";
+const IMG_PATH = "https://image.tmdb.org/t/p/w1280"; 
 
-let currentAudio = null; 
-let hoverTimeout = null; 
+let selectedMurfVoiceId = "en-US-natalie";
+let currentAudio = null;
+let hoverTimeout = null;
 
 const main = document.getElementById("section");
 const form = document.getElementById("form");
@@ -29,7 +27,7 @@ if (voiceLanguageSelect) {
     });
 }
 
-returnMovie(APILINK);
+returnMovie(`${BACKEND_BASE_URL}/api/movies/popular`);
 
 function returnMovie(url) {
     fetch(url)
@@ -70,6 +68,7 @@ function returnMovie(url) {
 
                 let timeoutId; 
 
+           
                 image.addEventListener('mouseenter', () => {
                     if (timeoutId) {
                         clearTimeout(timeoutId);
@@ -89,13 +88,16 @@ function returnMovie(url) {
                     }
                     if (currentAudio) {
                         currentAudio.pause();
-                        currentAudio.currentTime = 0; 
+                        currentAudio.currentTime = 0;
                         currentAudio = null;
                     }
                 });
             });
         })
-        .catch(error => console.error("Error fetching movies:", error));
+        .catch(error => {
+            console.error("Error fetching movies:", error);
+            main.innerHTML = '<p style="color: red; text-align: center; width: 100%;">Failed to load movies. Please try again later.</p>';
+        });
 }
 
 async function playSummaryAudio(textToSpeak) {
@@ -105,16 +107,23 @@ async function playSummaryAudio(textToSpeak) {
         currentAudio = null;
     }
 
+    if (!selectedMurfVoiceId) {
+        console.error("No Murf voice selected. Cannot generate audio.");
+        alert("Please select a voice language from the dropdown menu.");
+        return;
+    }
+
     try {
-        console.log("Requesting audio from Murf AI for:", textToSpeak.substring(0, 50) + "..."); 
-        const response = await fetch(MURF_API_ENDPOINT, {
+        const limitedText = textToSpeak.length > 800 ? textToSpeak.substring(0, 800) + "..." : textToSpeak;
+        console.log("Requesting audio from Murf AI via proxy for:", limitedText.substring(0, 100) + "...");
+
+        const response = await fetch(`${BACKEND_BASE_URL}/api/murf/generate-audio`, {
             method: 'POST',
             headers: {
-                'api-key': 'ap2_8a5246af-22f3-48b1-808e-db7da4a1ccbd',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                text: textToSpeak,
+                text: limitedText,
                 voice_id: selectedMurfVoiceId,
                 rate: -25,
                 pitch: -5,
@@ -122,27 +131,33 @@ async function playSummaryAudio(textToSpeak) {
             }),
         });
 
-        const data = await response.json();
-        console.log("Murf AI response:", data);
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Backend Proxy Error:", response.status, response.statusText, errorData);
+            throw new Error(`Proxy Error: ${response.statusText}. Details: ${errorData.error || 'Unknown error'}`);
+        }
 
-        const audioUrl = data.audioFile; 
+        const data = await response.json();
+        console.log("Response from proxy (Murf AI data):", data);
+
+        const audioUrl = data.audioFile || data.audio_url;
 
         if (audioUrl) {
             currentAudio = new Audio(audioUrl);
             currentAudio.play().catch(e => console.error("Error playing audio:", e));
         } else {
-            console.error("No audio URL found in Murf AI response.");
+            console.error("No audio URL found in proxy response. Response data:", data);
         }
 
     } catch (error) {
         console.error("Failed to fetch or play Murf AI audio:", error);
-        alert("Sorry, could not generate audio summary at this time.");
+        alert("Sorry, could not generate audio summary at this time. Check console for details.");
     }
 }
 
 form.addEventListener("submit", (e) => {
     e.preventDefault();
-    main.innerHTML = ''; 
+    main.innerHTML = '';
 
     if (currentAudio) {
         currentAudio.pause();
@@ -154,7 +169,7 @@ form.addEventListener("submit", (e) => {
     const searchItem = search.value;
 
     if (searchItem) {
-        returnMovie(SEARCHAPI + searchItem);
+        returnMovie(`${BACKEND_BASE_URL}/api/movies/search?q=${encodeURIComponent(searchItem)}`);
         search.value = '';
     }
 });

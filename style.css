@@ -110,7 +110,6 @@ input {
     height: 300px;
     border-radius: 20px;  
     object-position: center;
-    object-fit: cover;
 }
 
 .card:hover {
