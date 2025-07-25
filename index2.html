@@ -8,9 +8,19 @@
 </head>
 <body>
     <div class="topnav">
-        <a href="index1.html">Movies</a>
+        <a class="inactive" href="index1.html">Movies</a>
         <a class = "active" href="index2.html">Books</a>
-        <a href="index3.html">YouTube</a>
+        <div class="voice-selector-container">
+            <label for="voice-language" style="color: white; margin-right: 5px; font-size: 1.2rem;">VOICE</label>
+            <select id="voice-language-select">
+                <option value="en-US-amara">Amara (F)</option>
+                <option value="en-US-marcus">Marcus (M)</option>
+                <option value="en-US-natalie">Natalie (F)</option>
+                <option value="en-US-dylan">Dylan (M)</option>
+                <option value="en-US-maverick">Maverick (M)</option>
+                <option value="en-US-naomi">Naomi (F)</option>
+                </select>
+        </div>
         <div class="search-container">
             <form role="search" id="form">
                 <input type="search" id="query" name="q" placeholder="Search...">
@@ -30,6 +40,14 @@
         </div>
     </div>  -->
    </section>
-   <script src="script.js"></script>
+
+     <footer class="footer">
+    <div class="fcontent">
+        <p>&copy; 2025 Murf Vocal Summary. All rights reserved.</p>
+        <p><a href="#top" class="flink">Back To The Top</a></p>
+    </div>
+   </footer>
+   
+   <script src="script1.js"></script>
 </body>
 </html>

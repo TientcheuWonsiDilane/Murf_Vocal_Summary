@@ -42,6 +42,7 @@ async function returnBooks(url) {
         const data = await response.json();
         console.log("Google Books API response:", data);
 
+
         if (data.items && data.items.length > 0) {
             data.items.forEach(book => {
                 const volumeInfo = book.volumeInfo;
@@ -52,30 +53,36 @@ async function returnBooks(url) {
                 const div_row = document.createElement('div');
                 div_row.setAttribute('class', 'row');
 
-                const div_column = document.createElement('div'); 
+                const div_column = document.createElement('div');
                 div_column.setAttribute('class', 'column');
 
                 const image = document.createElement('img');
                 image.setAttribute('class', 'thumbnail');
                 image.setAttribute('alt', `Cover for ${volumeInfo.title}`);
 
-                const description = volumeInfo.description.replace(/<[^>]*>/g, '').trim();
+                if (volumeInfo.imageLinks && volumeInfo.imageLinks.thumbnail) {
+                    image.src = volumeInfo.imageLinks.thumbnail;
+                } else if (volumeInfo.imageLinks && volumeInfo.imageLinks.smallThumbnail) {
+                    image.src = volumeInfo.imageLinks.smallThumbnail;
+                } else {
+                    image.src = 'https://via.placeholder.com/128x192?text=No+Cover'; 
+                    image.alt = `No cover available for ${volumeInfo.title}`;
+                }
+
+                const description = volumeInfo.description ? volumeInfo.description.replace(/<[^>]*>/g, '').trim() : 'No description available.';
                 image.dataset.description = description;
 
-
                 const title = document.createElement('h4');
-                const displayTitle = volumeInfo.title.length > 25 ? volumeInfo.title.substring(0, 22) + "..." : volumeInfo.title;
+                const displayTitle = volumeInfo.title ? (volumeInfo.title.length > 25 ? volumeInfo.title.substring(0, 22) + "..." : volumeInfo.title) : 'Unknown Title';
                 title.innerHTML = displayTitle;
 
                 const authors = document.createElement('p');
                 authors.setAttribute('class', 'authors');
-                authors.style.color = '#ccc'; 
+                authors.style.color = '#ccc';
                 authors.style.fontSize = '0.7em';
                 authors.innerHTML = volumeInfo.authors ? `by ${volumeInfo.authors.join(', ')}` : 'Unknown Author';
 
                 const centre = document.createElement('centre'); 
-
-                image.src = volumeInfo.imageLinks.thumbnail
 
                 centre.appendChild(image);
                 div_card.appendChild(centre);
@@ -95,9 +102,11 @@ async function returnBooks(url) {
                     timeoutId = setTimeout(() => {
                         console.log(`Mouse hovered over: ${volumeInfo.title}`);
                         const bookDescription = image.dataset.description;
-                        if (bookDescription) {
+                        if (bookDescription && bookDescription !== 'No description available.') { 
                             const TextToSpeak = `${volumeInfo.title}. ${volumeInfo.authors ? `By ${volumeInfo.authors.join(', ')}. ` : ''}[pause 0.3s] Summary:[pause 0.75s] ${bookDescription}`;
                             playSummaryAudio(TextToSpeak);
+                        } else {
+                             console.log(`No description available for ${volumeInfo.title}. Skipping audio summary.`);
                         }
                     }, 1000);
                 });
@@ -145,6 +154,8 @@ async function playSummaryAudio(textToSpeak) {
                 text: text,
                 voice_id: selectedMurfVoiceId,
                 rate: -30, 
+                pitch: -3,
+                style: 'narative',
             }),
         });
 
@@ -180,7 +191,7 @@ form.addEventListener("submit", (e) => {
     const searchItem = search.value;
 
     if (searchItem) {
-        const searchURL = `${GOOGLE_API_BASE}?q=${encodeURIComponent(searchItem)}&maxResults=50&printType=books&orderBy=relevance&key=${GOOGLE_API_KEY}`;
+        const searchURL = `${GOOGLE_API_BASE}?q=${encodeURIComponent(searchItem)}&maxResults=25&printType=books&orderBy=relevance&key=${GOOGLE_API_KEY}`;
         returnBooks(searchURL);
         search.value = '';
     }
