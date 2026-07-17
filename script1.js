@@ -1,19 +1,26 @@
-const BACKEND_BASE_URL = "http://localhost:3000"; 
+const BACKEND_BASE_URL = "http://localhost:5000"; 
+const IMG_PATH = "https://image.tmdb.org/t/p/w1280"; 
 
 let selectedMurfVoiceId = "en-US-natalie";
 let currentAudio = null;
 let hoverTimeout = null;
 
+// Paging and category states
+let currentPage = 1;
+let currentGenre = "fiction"; // Default to fiction initial search
+let currentQuery = "";
+
 const main = document.getElementById("section");
-const form = document.getElementById("form");
-const search = document.getElementById("query");
+const navbarForm = document.getElementById("navbar-search-form");
+const navbarSearchInput = document.getElementById("navbar-search-query");
+const bodyForm = document.getElementById("body-search-form");
+const bodySearchInput = document.getElementById("body-search-query");
 const voiceLanguageSelect = document.getElementById("voice-language-select");
+const loadMoreBtn = document.getElementById("load-more-btn");
+const genreRadios = document.getElementsByName("genre");
 
 if (voiceLanguageSelect) {
     selectedMurfVoiceId = voiceLanguageSelect.value;
-}
-
-if (voiceLanguageSelect) {
     voiceLanguageSelect.addEventListener('change', (event) => {
         selectedMurfVoiceId = event.target.value;
         console.log("Voice language changed to:", selectedMurfVoiceId);
@@ -25,10 +32,87 @@ if (voiceLanguageSelect) {
     });
 }
 
-returnBooks(`${BACKEND_BASE_URL}/api/books/initial`);
+// Initial fetch
+fetchBooks();
 
-async function returnBooks(url) {
+// Fetch movie backdrops and start slideshow (Books page hero backdrop rotates movie images per user request)
+fetch(`${BACKEND_BASE_URL}/api/movies/popular`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.results && data.results.length > 0) {
+            const backdrops = data.results
+                .filter(m => m.backdrop_path)
+                .slice(0, 5)
+                .map(m => `${IMG_PATH}${m.backdrop_path}`);
+            
+            if (backdrops.length > 0) {
+                startBackdropSlideshow(backdrops);
+            } else {
+                startDefaultSlideshow();
+            }
+        } else {
+            startDefaultSlideshow();
+        }
+    })
+    .catch(err => {
+        console.warn("Failed to fetch popular movie backdrops, using defaults:", err);
+        startDefaultSlideshow();
+    });
+
+function startDefaultSlideshow() {
+    const defaultBackdrops = [
+        "https://image.tmdb.org/t/p/w1280/xJHokZbljvCY1i1OjfUFTYWmgU1.jpg",
+        "https://image.tmdb.org/t/p/w1280/s3TBrRGB1K73Kn45hVQQ1V2V2dY.jpg",
+        "https://image.tmdb.org/t/p/w1280/o86u0244AX74rl75mY4DxU7m445.jpg",
+        "https://image.tmdb.org/t/p/w1280/suaEO51FW5Kyj2w7X76461SB36P.jpg",
+        "https://image.tmdb.org/t/p/w1280/vL5f6jHjH4hdxtLIjMgr4Cgd59I.jpg"
+    ];
+    startBackdropSlideshow(defaultBackdrops);
+}
+
+let backdropIndex = 0;
+function startBackdropSlideshow(backdrops) {
+    const heroBg = document.querySelector('.hero-bg-overlay');
+    if (!heroBg) return;
+    
+    // Set initial background image
+    heroBg.style.backgroundImage = `url('${backdrops[0]}')`;
+    heroBg.style.opacity = 0.35;
+    
+    setInterval(() => {
+        backdropIndex = (backdropIndex + 1) % backdrops.length;
+        
+        // Fade out
+        heroBg.style.opacity = 0;
+        
+        setTimeout(() => {
+            // Change background image and fade in
+            heroBg.style.backgroundImage = `url('${backdrops[backdropIndex]}')`;
+            heroBg.style.opacity = 0.35;
+        }, 800); // Wait for fade-out transition (0.8s matching style.css)
+    }, 10000); // 10 seconds interval
+}
+
+function fetchBooks(append = false) {
+    let url = "";
+    if (currentQuery) {
+        url = `${BACKEND_BASE_URL}/api/books/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}`;
+    } else if (currentGenre) {
+        url = `${BACKEND_BASE_URL}/api/books/search?q=${encodeURIComponent(currentGenre)}&page=${currentPage}`;
+    } else {
+        url = `${BACKEND_BASE_URL}/api/books/initial?page=${currentPage}`;
+    }
+    
+    returnBooks(url, append);
+}
+
+async function returnBooks(url, append = false) {
     try {
+        console.log(`Fetching: ${url}, append=${append}`);
+        if (!append) {
+            main.innerHTML = '<p style="font-size: 1.1rem; color: #ccc; text-align: center; grid-column: 1 / -1;">Loading books...</p>';
+        }
+
         const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -36,23 +120,19 @@ async function returnBooks(url) {
         const data = await response.json();
         console.log("Google Books API response:", data);
 
-        main.innerHTML = '';
+        if (!append) {
+            main.innerHTML = '';
+        }
 
         if (data.items && data.items.length > 0) {
             data.items.forEach(book => {
-                const volumeInfo = book.volumeInfo;
+                const volumeInfo = book.volumeInfo || {};
                 const div_card = document.createElement('div');
                 div_card.setAttribute('class', 'card');
 
-                const div_row = document.createElement('div');
-                div_row.setAttribute('class', 'row');
-
-                const div_column = document.createElement('div');
-                div_column.setAttribute('class', 'column');
-
                 const image = document.createElement('img');
                 image.setAttribute('class', 'thumbnail');
-                image.setAttribute('alt', `Cover for ${volumeInfo.title}`);
+                image.setAttribute('alt', `Cover for ${volumeInfo.title || 'Unknown book'}`);
 
                 if (volumeInfo.imageLinks && volumeInfo.imageLinks.thumbnail) {
                     image.src = volumeInfo.imageLinks.thumbnail;
@@ -60,32 +140,26 @@ async function returnBooks(url) {
                     image.src = volumeInfo.imageLinks.smallThumbnail;
                 } else {
                     image.src = 'https://via.placeholder.com/128x192?text=No+Cover'; 
-                    image.alt = `No cover available for ${volumeInfo.title}`;
                 }
 
                 const description = volumeInfo.description ? volumeInfo.description.replace(/<[^>]*>/g, '').trim() : 'No description available.';
                 image.dataset.description = description;
 
                 const title = document.createElement('h4');
-                const displayTitle = volumeInfo.title ? (volumeInfo.title.length > 25 ? volumeInfo.title.substring(0, 22) + "..." : volumeInfo.title) : 'Unknown Title';
+                const displayTitle = volumeInfo.title ? (volumeInfo.title.length > 40 ? volumeInfo.title.substring(0, 37) + "..." : volumeInfo.title) : 'Unknown Title';
                 title.innerHTML = displayTitle;
 
                 const authors = document.createElement('p');
                 authors.setAttribute('class', 'authors');
-                authors.style.color = '#ccc';
-                authors.style.fontSize = '0.7em';
                 authors.innerHTML = volumeInfo.authors ? `by ${volumeInfo.authors.join(', ')}` : 'Unknown Author';
 
-                const centre = document.createElement('centre'); 
+                const centre_tag = document.createElement('centre'); 
 
-                centre.appendChild(image);
-                div_card.appendChild(centre);
+                centre_tag.appendChild(image);
+                div_card.appendChild(centre_tag);
                 div_card.appendChild(title);
                 div_card.appendChild(authors);
-                div_column.appendChild(div_card);
-                div_row.appendChild(div_column);
-
-                main.appendChild(div_row);
+                main.appendChild(div_card);
                 
                 let timeoutId;
 
@@ -97,7 +171,7 @@ async function returnBooks(url) {
                         console.log(`Mouse hovered over: ${volumeInfo.title}`);
                         const bookDescription = image.dataset.description;
                         if (bookDescription && bookDescription !== 'No description available.') {
-                            const TextToSpeak = `${volumeInfo.title}. ${volumeInfo.authors ? `By ${volumeInfo.authors.join(', ')}. ` : ''}[pause 0.3s] Summary:[pause 0.75s] ${bookDescription}`;
+                            const TextToSpeak = `${volumeInfo.title}. ${volumeInfo.authors ? `By ${volumeInfo.authors.join(', ')}. ` : ''}[pause 0.4s] Summary: [pause 0.8s] ${bookDescription}`;
                             playSummaryAudio(TextToSpeak);
                         } else {
                             console.log(`No description available for ${volumeInfo.title}. Skipping audio summary.`);
@@ -117,15 +191,22 @@ async function returnBooks(url) {
                 });
             });
         } else {
-            main.innerHTML = '<p style="color: white; text-align: center; width: 100%;">No books found for your search.</p>';
+            if (!append) {
+                main.innerHTML = '<p style="color: #ccc; text-align: center; grid-column: 1 / -1;">No books found for your search.</p>';
+            } else {
+                alert("No more books found.");
+            }
         }
 
     } catch (error) {
         console.error("Error fetching books:", error);
-        main.innerHTML = '<p style="color: red; text-align: center; width: 100%;">Failed to load books. Please try again later.</p>';
+        if (!append) {
+            main.innerHTML = "<p style='color: #ef4444; text-align: center; grid-column: 1 / -1;'>Failed to load books. Please check your backend connection.</p>";
+        } else {
+            alert("Failed to load more books.");
+        }
     }
 }
-
 
 async function playSummaryAudio(textToSpeak) {
     if (currentAudio) {
@@ -152,8 +233,8 @@ async function playSummaryAudio(textToSpeak) {
             body: JSON.stringify({
                 text: text,
                 voice_id: selectedMurfVoiceId,
-                rate: -22,
-                pitch: -5,
+                rate: -15,
+                pitch: 0,
                 style: 'conversational',
             }),
         });
@@ -167,7 +248,7 @@ async function playSummaryAudio(textToSpeak) {
         const data = await response.json();
         console.log("Murf AI response (via proxy):", data);
 
-        const audioUrl = data.audioFile ;
+        const audioUrl = data.audioFile || data.audio_url;
 
         if (audioUrl) {
             currentAudio = new Audio(audioUrl);
@@ -178,14 +259,11 @@ async function playSummaryAudio(textToSpeak) {
 
     } catch (error) {
         console.error("Failed to fetch or play Murf AI audio:", error);
-        alert("Sorry, could not generate audio summary at this time. Check console for details.");
     }
 }
 
-form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    main.innerHTML = '';
-
+// Bind navbar and body searches
+function handleSearch(searchQuery) {
     if (currentAudio) {
         currentAudio.pause();
         currentAudio.currentTime = 0;
@@ -193,11 +271,79 @@ form.addEventListener("submit", (e) => {
     }
     clearTimeout(hoverTimeout);
 
-    const searchItem = search.value;
+    currentQuery = searchQuery;
+    currentPage = 1;
+    
+    // Clear sidebar highlights since we are doing a text search
+    genreRadios.forEach(radio => {
+        radio.checked = false;
+    });
+    currentGenre = "";
 
-    if (searchItem) {
-        const searchURL = `${BACKEND_BASE_URL}/api/books/search?q=${encodeURIComponent(searchItem)}`;
-        returnBooks(searchURL);
-        search.value = '';
-    }
+    fetchBooks(false);
+}
+
+if (navbarForm) {
+    navbarForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const searchItem = navbarSearchInput.value.trim();
+        if (searchItem) {
+            handleSearch(searchItem);
+            navbarSearchInput.value = searchItem; // preserve text in query bar
+            if (bodySearchInput) bodySearchInput.value = "";
+        }
+    });
+}
+
+if (bodyForm) {
+    bodyForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const searchItem = bodySearchInput.value.trim();
+        if (searchItem) {
+            handleSearch(searchItem);
+            bodySearchInput.value = searchItem;
+            if (navbarSearchInput) navbarSearchInput.value = "";
+        }
+    });
+}
+
+// Click listener on search image icons
+document.querySelectorAll(".search-img").forEach(img => {
+    img.addEventListener("click", () => {
+        const parentForm = img.closest("form");
+        if (parentForm) {
+            parentForm.requestSubmit();
+        }
+    });
 });
+
+// Bind Category Sidebar Radio filters
+genreRadios.forEach(radio => {
+    radio.addEventListener("change", (e) => {
+        if (e.target.checked) {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                currentAudio = null;
+            }
+            
+            currentGenre = e.target.value;
+            currentQuery = "";
+            currentPage = 1;
+            
+            // Reset text searches
+            if (navbarSearchInput) navbarSearchInput.value = "";
+            if (bodySearchInput) bodySearchInput.value = "";
+            
+            fetchBooks(false);
+        }
+    });
+});
+
+// Bind pagination Load More Button
+if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", () => {
+        currentPage++;
+        fetchBooks(true);
+    });
+}

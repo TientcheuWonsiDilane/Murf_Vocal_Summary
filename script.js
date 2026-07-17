@@ -1,21 +1,26 @@
-const BACKEND_BASE_URL = "http://localhost:3000"; 
-
+const BACKEND_BASE_URL = "http://localhost:5000"; 
 const IMG_PATH = "https://image.tmdb.org/t/p/w1280"; 
 
 let selectedMurfVoiceId = "en-US-natalie";
 let currentAudio = null;
 let hoverTimeout = null;
 
+// Paging and filter states
+let currentPage = 1;
+let currentGenre = "popular"; // "popular" means discover popular, otherwise it holds a genre ID string
+let currentQuery = "";
+
 const main = document.getElementById("section");
-const form = document.getElementById("form");
-const search = document.getElementById("query");
+const navbarForm = document.getElementById("navbar-search-form");
+const navbarSearchInput = document.getElementById("navbar-search-query");
+const bodyForm = document.getElementById("body-search-form");
+const bodySearchInput = document.getElementById("body-search-query");
 const voiceLanguageSelect = document.getElementById("voice-language-select");
+const loadMoreBtn = document.getElementById("load-more-btn");
+const genreRadios = document.getElementsByName("genre");
 
 if (voiceLanguageSelect) {
     selectedMurfVoiceId = voiceLanguageSelect.value;
-}
-
-if (voiceLanguageSelect) {
     voiceLanguageSelect.addEventListener('change', (event) => {
         selectedMurfVoiceId = event.target.value;
         console.log("Voice language changed to:", selectedMurfVoiceId);
@@ -27,57 +32,149 @@ if (voiceLanguageSelect) {
     });
 }
 
-returnMovie(`${BACKEND_BASE_URL}/api/movies/popular`);
+// Initial fetch
+fetchMovies();
 
-function returnMovie(url) {
+// Fetch backdrops and start slideshow
+fetch(`${BACKEND_BASE_URL}/api/movies/popular`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.results && data.results.length > 0) {
+            const backdrops = data.results
+                .filter(m => m.backdrop_path)
+                .slice(0, 5)
+                .map(m => `${IMG_PATH}${m.backdrop_path}`);
+            
+            if (backdrops.length > 0) {
+                startBackdropSlideshow(backdrops);
+            } else {
+                startDefaultSlideshow();
+            }
+        } else {
+            startDefaultSlideshow();
+        }
+    })
+    .catch(err => {
+        console.warn("Failed to fetch popular movie backdrops, using defaults:", err);
+        startDefaultSlideshow();
+    });
+
+function startDefaultSlideshow() {
+    const defaultBackdrops = [
+        "https://image.tmdb.org/t/p/w1280/xJHokZbljvCY1i1OjfUFTYWmgU1.jpg",
+        "https://image.tmdb.org/t/p/w1280/s3TBrRGB1K73Kn45hVQQ1V2V2dY.jpg",
+        "https://image.tmdb.org/t/p/w1280/o86u0244AX74rl75mY4DxU7m445.jpg",
+        "https://image.tmdb.org/t/p/w1280/suaEO51FW5Kyj2w7X76461SB36P.jpg",
+        "https://image.tmdb.org/t/p/w1280/vL5f6jHjH4hdxtLIjMgr4Cgd59I.jpg"
+    ];
+    startBackdropSlideshow(defaultBackdrops);
+}
+
+let backdropIndex = 0;
+function startBackdropSlideshow(backdrops) {
+    const heroBg = document.querySelector('.hero-bg-overlay');
+    if (!heroBg) return;
+    
+    // Set initial background image
+    heroBg.style.backgroundImage = `url('${backdrops[0]}')`;
+    heroBg.style.opacity = 0.35;
+    
+    setInterval(() => {
+        backdropIndex = (backdropIndex + 1) % backdrops.length;
+        
+        // Fade out
+        heroBg.style.opacity = 0;
+        
+        setTimeout(() => {
+            // Change background image and fade in
+            heroBg.style.backgroundImage = `url('${backdrops[backdropIndex]}')`;
+            heroBg.style.opacity = 0.35;
+        }, 800); // Wait for fade-out transition (0.8s matching style.css)
+    }, 10000); // 10 seconds interval
+}
+
+// Fetch movies based on current filters, search query, and pagination state
+function fetchMovies(append = false) {
+    let url = "";
+    if (currentQuery) {
+        url = `${BACKEND_BASE_URL}/api/movies/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}`;
+    } else if (currentGenre && currentGenre !== "popular") {
+        url = `${BACKEND_BASE_URL}/api/movies/popular?genre=${currentGenre}&page=${currentPage}`;
+    } else {
+        url = `${BACKEND_BASE_URL}/api/movies/popular?page=${currentPage}`;
+    }
+    
+    returnMovie(url, append);
+}
+
+function returnMovie(url, append = false) {
+    console.log(`Fetching: ${url}, append=${append}`);
+    
+    if (!append) {
+        main.innerHTML = '<p style="font-size: 1.1rem; color: #ccc; text-align: center; grid-column: 1 / -1;">Loading movies...</p>';
+    }
+
     fetch(url)
-        .then(res => res.json())
-        .then(function(data) {
-            console.log(data.results);
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (!append) {
+                main.innerHTML = "";
+            }
+
+            if (!data.results || data.results.length === 0) {
+                if (!append) {
+                    main.innerHTML = '<p style="font-size: 1.1rem; color: #ccc; text-align: center; grid-column: 1 / -1;">No movies found.</p>';
+                } else {
+                    console.log("No more movies to load.");
+                    alert("No more movies found.");
+                }
+                return;
+            }
+
             data.results.forEach(element => {
                 const div_card = document.createElement('div');
                 div_card.setAttribute('class', 'card');
 
-                const div_row = document.createElement('div');
-                div_row.setAttribute('class', 'row');
-
-                const div_column = document.createElement('div');
-                div_column.setAttribute('class', 'column');
+                const centre_tag = document.createElement('centre');
 
                 const image = document.createElement('img');
                 image.setAttribute('class', 'thumbnail');
-                image.setAttribute('id', 'image');
+                image.setAttribute('alt', `Cover for ${element.title}`);
 
-                image.dataset.overview = element.overview;
+                image.dataset.overview = element.overview || "No description available.";
 
                 const title = document.createElement('h4');
-                title.setAttribute('id', 'title');
+                title.innerHTML = element.title;
 
-                const centre = document.createElement('centre');
+                if (element.poster_path) {
+                    image.src = IMG_PATH + element.poster_path;
+                } else {
+                    image.src = 'https://via.placeholder.com/240x360?text=No+Cover'; 
+                }
 
-                title.innerHTML = `${element.title}`;
-                image.src = IMG_PATH + element.poster_path;
-
-                centre.appendChild(image);
-                div_card.appendChild(centre);
+                centre_tag.appendChild(image);
+                div_card.appendChild(centre_tag);
                 div_card.appendChild(title);
-                div_column.appendChild(div_card);
-                div_row.appendChild(div_column);
-
-                main.appendChild(div_row);
+                main.appendChild(div_card);
 
                 let timeoutId; 
 
-           
                 image.addEventListener('mouseenter', () => {
                     if (timeoutId) {
                         clearTimeout(timeoutId);
                     }
                     timeoutId = setTimeout(() => {
                         console.log(`Mouse hovered over: ${element.title}`);
-                        const movieOverview = `${element.title} [pause 0.3s] summary. [pause 1s]` + image.dataset.overview;
-                        if (movieOverview) {
+                        const movieOverview = `${element.title}. [pause 0.4s] Summary: [pause 0.8s] ` + image.dataset.overview;
+                        if (image.dataset.overview && image.dataset.overview !== "No description available.") {
                             playSummaryAudio(movieOverview);
+                        } else {
+                            console.log(`No overview summary available for: ${element.title}`);
                         }
                     }, 1000);
                 });
@@ -96,7 +193,11 @@ function returnMovie(url) {
         })
         .catch(error => {
             console.error("Error fetching movies:", error);
-            main.innerHTML = '<p style="color: red; text-align: center; width: 100%;">Failed to load movies. Please try again later.</p>';
+            if (!append) {
+                main.innerHTML = '<p style="font-size: 1.1rem; color: #ef4444; text-align: center; grid-column: 1 / -1;">Failed to load movies. Please check your backend connection.</p>';
+            } else {
+                alert("Failed to load more movies.");
+            }
         });
 }
 
@@ -125,8 +226,8 @@ async function playSummaryAudio(textToSpeak) {
             body: JSON.stringify({
                 text: limitedText,
                 voice_id: selectedMurfVoiceId,
-                rate: -25,
-                pitch: -5,
+                rate: -20,
+                pitch: 0,
                 style: 'conversational',
             }),
         });
@@ -151,14 +252,11 @@ async function playSummaryAudio(textToSpeak) {
 
     } catch (error) {
         console.error("Failed to fetch or play Murf AI audio:", error);
-        alert("Sorry, could not generate audio summary at this time. Check console for details.");
     }
 }
 
-form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    main.innerHTML = '';
-
+// Bind navbar and body searches
+function handleSearch(searchQuery) {
     if (currentAudio) {
         currentAudio.pause();
         currentAudio.currentTime = 0;
@@ -166,10 +264,79 @@ form.addEventListener("submit", (e) => {
     }
     clearTimeout(hoverTimeout);
 
-    const searchItem = search.value;
+    currentQuery = searchQuery;
+    currentPage = 1;
+    
+    // Clear sidebar highlights since we are doing a text search
+    genreRadios.forEach(radio => {
+        radio.checked = false;
+    });
+    currentGenre = null;
 
-    if (searchItem) {
-        returnMovie(`${BACKEND_BASE_URL}/api/movies/search?q=${encodeURIComponent(searchItem)}`);
-        search.value = '';
-    }
+    fetchMovies(false);
+}
+
+if (navbarForm) {
+    navbarForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const searchItem = navbarSearchInput.value.trim();
+        if (searchItem) {
+            handleSearch(searchItem);
+            navbarSearchInput.value = searchItem; // preserve text in query bar
+            if (bodySearchInput) bodySearchInput.value = "";
+        }
+    });
+}
+
+if (bodyForm) {
+    bodyForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const searchItem = bodySearchInput.value.trim();
+        if (searchItem) {
+            handleSearch(searchItem);
+            bodySearchInput.value = searchItem;
+            if (navbarSearchInput) navbarSearchInput.value = "";
+        }
+    });
+}
+
+// Click listener on search image icons
+document.querySelectorAll(".search-img").forEach(img => {
+    img.addEventListener("click", () => {
+        const parentForm = img.closest("form");
+        if (parentForm) {
+            parentForm.requestSubmit();
+        }
+    });
 });
+
+// Bind Category Sidebar Radio filters
+genreRadios.forEach(radio => {
+    radio.addEventListener("change", (e) => {
+        if (e.target.checked) {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                currentAudio = null;
+            }
+            
+            currentGenre = e.target.value;
+            currentQuery = "";
+            currentPage = 1;
+            
+            // Reset text searches
+            if (navbarSearchInput) navbarSearchInput.value = "";
+            if (bodySearchInput) bodySearchInput.value = "";
+            
+            fetchMovies(false);
+        }
+    });
+});
+
+// Bind pagination Load More Button
+if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", () => {
+        currentPage++;
+        fetchMovies(true);
+    });
+}

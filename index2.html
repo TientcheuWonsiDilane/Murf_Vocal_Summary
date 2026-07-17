@@ -1,53 +1,117 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Murf AI Vocal Summary</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Murf AI Vocal Summary - Books</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
     <div class="topnav">
-        <a class="inactive" href="index1.html">Movies</a>
-        <a class = "active" href="index2.html">Books</a>
+      <div class="main-nav">
+        <div>
+          <a href="index1.html">Movies</a>
+          <a class="active" href="index2.html">Books</a>
+        </div>
+
         <div class="voice-selector-container">
-            <label for="voice-language" style="color: white; margin-right: 5px; font-size: 1.2rem;">VOICE</label>
-            <select id="voice-language-select">
-                <option value="en-US-natalie">Natalie (F)</option>
-                <option value="en-US-marcus">Marcus (M)</option>
-                <option value="en-US-amara">Amara (F)</option>
-                <option value="en-US-dylan">Dylan (M)</option>
-                <option value="en-US-maverick">Maverick (M)</option>
-                <option value="en-US-naomi">Naomi (F)</option>
-                </select>
+          <label for="voice-language-select">VOICE</label>
+          <select id="voice-language-select">
+            <option value="en-US-natalie">Natalie (F)</option>
+            <option value="en-US-marcus">Marcus (M)</option>
+            <option value="en-US-amara">Amara (F)</option>
+            <option value="en-US-dylan">Dylan (M)</option>
+            <option value="en-US-maverick">Maverick (M)</option>
+            <option value="en-US-naomi">Naomi (F)</option>
+          </select>
         </div>
-        <div class="search-container">
-            <form role="search" id="form">
-                <input type="search" id="query" name="q" placeholder="Search...">
-                <img src="search.png" class="search-img">
-            </form>
-        </div>
+      </div>
+      <div class="search-container">
+        <form role="search" id="navbar-search-form" class="search-bar-form">
+          <input type="search" id="navbar-search-query" name="q" placeholder="Search..." />
+          <img src="search.png" class="search-img" alt="search" />
+        </form>
+      </div>
     </div>
 
-    <div style="padding-left: 16px;"></div>
-   <section id="section" style="margin-top: 90px;">
-<!--   <div class="row">
-        <div class="column">
-            <div class="card">
-                <centre><img src="clouds.png" class="thumbnail"></centre>
-                <h3>Movie Title</h3>
+    <div class="main-layout">
+      <aside>
+        <div class="sub-topic">Book Categories</div>
+        <div class="side">
+          <ul class="list">
+            <li>
+              <input type="radio" name="genre" id="genre-fiction" value="fiction" checked />
+              <label for="genre-fiction">Fiction</label>
+            </li>
+            <li>
+              <input type="radio" name="genre" id="genre-science" value="subject:science" />
+              <label for="genre-science">Science</label>
+            </li>
+            <li>
+              <input type="radio" name="genre" id="genre-history" value="subject:history" />
+              <label for="genre-history">History</label>
+            </li>
+            <li>
+              <input type="radio" name="genre" id="genre-biography" value="subject:biography" />
+              <label for="genre-biography">Biography</label>
+            </li>
+            <li>
+              <input type="radio" name="genre" id="genre-poetry" value="subject:poetry" />
+              <label for="genre-poetry">Poetry</label>
+            </li>
+            <li>
+              <input type="radio" name="genre" id="genre-mystery" value="subject:mystery" />
+              <label for="genre-mystery">Mystery</label>
+            </li>
+            <li>
+              <input type="radio" name="genre" id="genre-technology" value="subject:technology" />
+              <label for="genre-technology">Technology</label>
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <div class="layout">
+        <section class="hero">
+          <div class="hero-bg-overlay"></div>
+          <div class="hero-main">
+            <div class="text-container">
+              <p class="content">
+                <span class="topic">Welcome to <span>MURF_AI Summary!</span></span>
+                <span class="sub-topic">Your AI Vocal Books and Movies Summarizer</span>
+                <span class="para">Listen to books and movies summaries by simply hovering over your cover of interest. Whether you're browsing your next read or exploring movies, everything is made to feel smooth. Powered with <span>MURF AI</span></span>
+              </p>
             </div>
-        </div>
-    </div>  -->
-   </section>
+            <div class="img-container">
+              <img src="cursor-white.svg" alt="hover-cursor" />
+            </div>
+          </div>
+        </section>
 
-     <footer class="footer">
-    <div class="fcontent">
-        <p>&copy; 2025 Murf Vocal Summary. All rights reserved.</p>
-        <p><a href="#top" class="flink">Back To The Top</a></p>
+        <div class="body-explore-container">
+          <h1 class="sub-topic">Explore !</h1>
+          <form role="search" id="body-search-form" class="search-bar-form">
+            <input type="search" id="body-search-query" name="q" placeholder="Search..." />
+            <img src="search.png" class="search-img" alt="search" />
+          </form>
+        </div>
+
+        <section id="section">
+          <!-- Book cards will be rendered dynamically here -->
+        </section>
+
+        <hr />
+        <button class="load" id="load-more-btn">Load more</button>
+      </div>
     </div>
-   </footer>
-   
-   <script src="script1.js"></script>
-</body>
+
+    <footer class="footer">
+      <div class="fcontent">
+        <p>&copy; 2026 Murf Vocal Summary. All rights reserved.</p>
+        <p><a href="#top" class="flink">Back To The Top</a></p>
+      </div>
+    </footer>
+
+    <script src="script1.js"></script>
+  </body>
 </html>
