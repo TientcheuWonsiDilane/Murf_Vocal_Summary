@@ -1,11 +1,10 @@
-const BACKEND_BASE_URL = "http://localhost:5000"; 
-const IMG_PATH = "https://image.tmdb.org/t/p/w1280"; 
+const BACKEND_BASE_URL = "https://murf-vocal-summary.onrender.com";
+const IMG_PATH = "https://image.tmdb.org/t/p/w1280";
 
 let selectedMurfVoiceId = "en-US-natalie";
 let currentAudio = null;
 let hoverTimeout = null;
 
-// Paging and category states
 let currentPage = 1;
 let currentGenre = "fiction"; // Default to fiction initial search
 let currentQuery = "";
@@ -44,7 +43,7 @@ fetch(`${BACKEND_BASE_URL}/api/movies/popular`)
                 .filter(m => m.backdrop_path)
                 .slice(0, 5)
                 .map(m => `${IMG_PATH}${m.backdrop_path}`);
-            
+
             if (backdrops.length > 0) {
                 startBackdropSlideshow(backdrops);
             } else {
@@ -74,17 +73,17 @@ let backdropIndex = 0;
 function startBackdropSlideshow(backdrops) {
     const heroBg = document.querySelector('.hero-bg-overlay');
     if (!heroBg) return;
-    
+
     // Set initial background image
     heroBg.style.backgroundImage = `url('${backdrops[0]}')`;
     heroBg.style.opacity = 0.35;
-    
+
     setInterval(() => {
         backdropIndex = (backdropIndex + 1) % backdrops.length;
-        
+
         // Fade out
         heroBg.style.opacity = 0;
-        
+
         setTimeout(() => {
             // Change background image and fade in
             heroBg.style.backgroundImage = `url('${backdrops[backdropIndex]}')`;
@@ -102,7 +101,7 @@ function fetchBooks(append = false) {
     } else {
         url = `${BACKEND_BASE_URL}/api/books/initial?page=${currentPage}`;
     }
-    
+
     returnBooks(url, append);
 }
 
@@ -139,7 +138,7 @@ async function returnBooks(url, append = false) {
                 } else if (volumeInfo.imageLinks && volumeInfo.imageLinks.smallThumbnail) {
                     image.src = volumeInfo.imageLinks.smallThumbnail;
                 } else {
-                    image.src = 'https://via.placeholder.com/128x192?text=No+Cover'; 
+                    image.src = 'https://via.placeholder.com/128x192?text=No+Cover';
                 }
 
                 const description = volumeInfo.description ? volumeInfo.description.replace(/<[^>]*>/g, '').trim() : 'No description available.';
@@ -153,14 +152,14 @@ async function returnBooks(url, append = false) {
                 authors.setAttribute('class', 'authors');
                 authors.innerHTML = volumeInfo.authors ? `by ${volumeInfo.authors.join(', ')}` : 'Unknown Author';
 
-                const centre_tag = document.createElement('centre'); 
+                const centre_tag = document.createElement('centre');
 
                 centre_tag.appendChild(image);
                 div_card.appendChild(centre_tag);
                 div_card.appendChild(title);
                 div_card.appendChild(authors);
                 main.appendChild(div_card);
-                
+
                 let timeoutId;
 
                 image.addEventListener('mouseenter', () => {
@@ -273,7 +272,7 @@ function handleSearch(searchQuery) {
 
     currentQuery = searchQuery;
     currentPage = 1;
-    
+
     // Clear sidebar highlights since we are doing a text search
     genreRadios.forEach(radio => {
         radio.checked = false;
@@ -326,15 +325,15 @@ genreRadios.forEach(radio => {
                 currentAudio.currentTime = 0;
                 currentAudio = null;
             }
-            
+
             currentGenre = e.target.value;
             currentQuery = "";
             currentPage = 1;
-            
+
             // Reset text searches
             if (navbarSearchInput) navbarSearchInput.value = "";
             if (bodySearchInput) bodySearchInput.value = "";
-            
+
             fetchBooks(false);
         }
     });

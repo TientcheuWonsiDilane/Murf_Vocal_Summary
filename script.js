@@ -1,5 +1,5 @@
-const BACKEND_BASE_URL = "http://localhost:5000"; 
-const IMG_PATH = "https://image.tmdb.org/t/p/w1280"; 
+const BACKEND_BASE_URL = "https://murf-vocal-summary.onrender.com";
+const IMG_PATH = "https://image.tmdb.org/t/p/w1280";
 
 let selectedMurfVoiceId = "en-US-natalie";
 let currentAudio = null;
@@ -44,7 +44,7 @@ fetch(`${BACKEND_BASE_URL}/api/movies/popular`)
                 .filter(m => m.backdrop_path)
                 .slice(0, 5)
                 .map(m => `${IMG_PATH}${m.backdrop_path}`);
-            
+
             if (backdrops.length > 0) {
                 startBackdropSlideshow(backdrops);
             } else {
@@ -74,17 +74,17 @@ let backdropIndex = 0;
 function startBackdropSlideshow(backdrops) {
     const heroBg = document.querySelector('.hero-bg-overlay');
     if (!heroBg) return;
-    
+
     // Set initial background image
     heroBg.style.backgroundImage = `url('${backdrops[0]}')`;
     heroBg.style.opacity = 0.35;
-    
+
     setInterval(() => {
         backdropIndex = (backdropIndex + 1) % backdrops.length;
-        
+
         // Fade out
         heroBg.style.opacity = 0;
-        
+
         setTimeout(() => {
             // Change background image and fade in
             heroBg.style.backgroundImage = `url('${backdrops[backdropIndex]}')`;
@@ -103,13 +103,13 @@ function fetchMovies(append = false) {
     } else {
         url = `${BACKEND_BASE_URL}/api/movies/popular?page=${currentPage}`;
     }
-    
+
     returnMovie(url, append);
 }
 
 function returnMovie(url, append = false) {
     console.log(`Fetching: ${url}, append=${append}`);
-    
+
     if (!append) {
         main.innerHTML = '<p style="font-size: 1.1rem; color: #ccc; text-align: center; grid-column: 1 / -1;">Loading movies...</p>';
     }
@@ -154,7 +154,7 @@ function returnMovie(url, append = false) {
                 if (element.poster_path) {
                     image.src = IMG_PATH + element.poster_path;
                 } else {
-                    image.src = 'https://via.placeholder.com/240x360?text=No+Cover'; 
+                    image.src = 'https://via.placeholder.com/240x360?text=No+Cover';
                 }
 
                 centre_tag.appendChild(image);
@@ -162,7 +162,7 @@ function returnMovie(url, append = false) {
                 div_card.appendChild(title);
                 main.appendChild(div_card);
 
-                let timeoutId; 
+                let timeoutId;
 
                 image.addEventListener('mouseenter', () => {
                     if (timeoutId) {
@@ -266,7 +266,7 @@ function handleSearch(searchQuery) {
 
     currentQuery = searchQuery;
     currentPage = 1;
-    
+
     // Clear sidebar highlights since we are doing a text search
     genreRadios.forEach(radio => {
         radio.checked = false;
@@ -319,15 +319,15 @@ genreRadios.forEach(radio => {
                 currentAudio.currentTime = 0;
                 currentAudio = null;
             }
-            
+
             currentGenre = e.target.value;
             currentQuery = "";
             currentPage = 1;
-            
+
             // Reset text searches
             if (navbarSearchInput) navbarSearchInput.value = "";
             if (bodySearchInput) bodySearchInput.value = "";
-            
+
             fetchMovies(false);
         }
     });
