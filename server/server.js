@@ -331,8 +331,8 @@ app.post('/api/murf/generate-audio', async (req, res) => {
             }
         });
 
-        const generatedAudioUrl = murfResponse.data.audioUrl;
-
+        const generatedAudioUrl = murfResponse.data.audioFile || murfResponse.data.audioUrl;
+        
         if (!generatedAudioUrl) {
             return res.status(500).json({ error: 'Murf API did not return an audio URL.' });
         }

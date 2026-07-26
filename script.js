@@ -68,14 +68,18 @@ function startDefaultSlideshow() {
 }
 
 let backdropIndex = 0;
+let slideshowInterval = null;
+
 function startBackdropSlideshow(backdrops) {
     const heroBg = document.querySelector('.hero-bg-overlay');
     if (!heroBg) return;
 
+    if (slideshowInterval) clearInterval(slideshowInterval);
+
     heroBg.style.backgroundImage = `url('${backdrops[0]}')`;
     heroBg.style.opacity = 0.35;
 
-    setInterval(() => {
+    slideshowInterval = setInterval(() => {
         backdropIndex = (backdropIndex + 1) % backdrops.length;
 
         heroBg.style.opacity = 0;
@@ -85,6 +89,7 @@ function startBackdropSlideshow(backdrops) {
             heroBg.style.opacity = 0.35;
         }, 800); 
     }, 10000); 
+} // <-- FIXED: Added missing closing bracket here
 
 function fetchMovies(append = false) {
     let url = "";
@@ -132,7 +137,8 @@ function returnMovie(url, append = false) {
                 const div_card = document.createElement('div');
                 div_card.setAttribute('class', 'card');
 
-                const centre_tag = document.createElement('centre');
+                // FIXED: Changed 'centre' to 'center'
+                const center_tag = document.createElement('center');
 
                 const image = document.createElement('img');
                 image.setAttribute('class', 'thumbnail');
@@ -149,8 +155,8 @@ function returnMovie(url, append = false) {
                     image.src = 'https://via.placeholder.com/240x360?text=No+Cover';
                 }
 
-                centre_tag.appendChild(image);
-                div_card.appendChild(centre_tag);
+                center_tag.appendChild(image);
+                div_card.appendChild(center_tag);
                 div_card.appendChild(title);
                 main.appendChild(div_card);
 
@@ -208,7 +214,7 @@ async function playSummaryAudio(textToSpeak) {
 
     try {
         const limitedText = textToSpeak.length > 800 ? textToSpeak.substring(0, 800) + "..." : textToSpeak;
-        console.log("Requesting audio from Murf AI via proxy for:", limitedText.substring(0, 100) + "...");
+        console.log("Requesting compressed audio from Murf AI via proxy for:", limitedText.substring(0, 100) + "...");
 
         const response = await fetch(`${BACKEND_BASE_URL}/api/murf/generate-audio`, {
             method: 'POST',
@@ -230,12 +236,20 @@ async function playSummaryAudio(textToSpeak) {
             throw new Error(`Proxy Error: ${response.statusText}. Details: ${errorData.error || 'Unknown error'}`);
         }
 
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
+        // 1. Read array buffer from auto-decompressed response
+        const arrayBuffer = await response.arrayBuffer();
 
-        if (audioBlob.size > 0) {
-            currentAudio = new Audio(audioUrl);
-            currentAudio.play().catch(e => console.error("Error playing audio:", e));
+        // 2. Create a clean audio/mpeg blob from the decompressed buffer
+        const cleanAudioBlob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+
+        if (cleanAudioBlob.size > 0) {
+            // 3. Read as Data URL to bypass blob URL MIME decoding issues
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                currentAudio = new Audio(e.target.result);
+                currentAudio.play().catch(err => console.error("Error playing audio:", err));
+            };
+            reader.readAsDataURL(cleanAudioBlob);
         } else {
             console.error("No audio data found in proxy response.");
         }
@@ -244,7 +258,6 @@ async function playSummaryAudio(textToSpeak) {
         console.error("Failed to fetch or play Murf AI audio:", error);
     }
 }
-
 
 function handleSearch(searchQuery) {
     if (currentAudio) {
@@ -324,5 +337,4 @@ if (loadMoreBtn) {
         currentPage++;
         fetchMovies(true);
     });
-}
 }
