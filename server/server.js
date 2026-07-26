@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const zlib = require('zlib');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,7 +19,6 @@ const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const MURF_API_ENDPOINT = "https://api.murf.ai/v1/speech/generate";
 const GOOGLE_BOOKS_API_BASE = "https://www.googleapis.com/books/v1/volumes"; 
 
-// Premium Mock Fallback Database
 const FALLBACK_MOVIES = {
   results: [
     {
@@ -307,7 +308,6 @@ app.get('/api/books/search', async (req, res) => {
   }
 });
 
-import zlib from 'zlib';
 
 app.post('/api/murf/generate-audio', async (req, res) => {
     const { text, voice_id, rate, pitch, style } = req.body;
