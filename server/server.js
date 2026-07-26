@@ -317,22 +317,13 @@ app.post('/api/murf/generate-audio', async (req, res) => {
     }
 
     try {
-        console.log(`Generating audio with Murf for text size: ${text.length}`);
         const murfResponse = await axios.post(MURF_API_ENDPOINT, {
-            text,
-            voice_id,
-            rate,
-            pitch,
-            style,
+            text, voice_id, rate, pitch, style,
         }, {
-            headers: {
-                'api-key': MURF_API_KEY,
-                'Content-Type': 'application/json'
-            }
+            headers: { 'api-key': MURF_API_KEY, 'Content-Type': 'application/json' }
         });
 
         const generatedAudioUrl = murfResponse.data.audioFile || murfResponse.data.audioUrl;
-        
         if (!generatedAudioUrl) {
             return res.status(500).json({ error: 'Murf API did not return an audio URL.' });
         }
@@ -343,18 +334,15 @@ app.post('/api/murf/generate-audio', async (req, res) => {
             responseType: 'stream'
         });
 
+        // Set raw MP3 header — NO GZIP
         res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Content-Encoding', 'gzip');
-
-        const gzip = zlib.createGzip();
-        audioStreamResponse.data.pipe(gzip).pipe(res);
+        audioStreamResponse.data.pipe(res);
 
     } catch (error) {
         console.error("Error generating Murf AI audio:", error.message);
-        res.status(error.response?.status || 500).json({ error: 'Failed to generate audio', details: error.message });
+        res.status(error.response?.status || 500).json({ error: 'Failed to generate audio' });
     }
 });
-
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

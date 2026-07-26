@@ -207,20 +207,16 @@ async function playSummaryAudio(textToSpeak) {
     }
 
     if (!selectedMurfVoiceId) {
-        console.error("No Murf voice selected. Cannot generate audio.");
-        alert("Please select a voice language from the dropdown menu.");
+        console.error("No Murf voice selected.");
         return;
     }
 
     try {
         const limitedText = textToSpeak.length > 800 ? textToSpeak.substring(0, 800) + "..." : textToSpeak;
-        console.log("Requesting compressed audio from Murf AI via proxy for:", limitedText.substring(0, 100) + "...");
 
         const response = await fetch(`${BACKEND_BASE_URL}/api/murf/generate-audio`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: limitedText,
                 voice_id: selectedMurfVoiceId,
@@ -230,30 +226,22 @@ async function playSummaryAudio(textToSpeak) {
             }),
         });
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: response.statusText }));
-            console.error("Backend Proxy Error:", response.status, response.statusText, errorData);
-            throw new Error(`Proxy Error: ${response.statusText}. Details: ${errorData.error || 'Unknown error'}`);
+        if (!response.ok) throw new Error(`Proxy Error: ${response.statusText}`);
+
+        // Fast binary conversion directly into a Blob URL
+        const audioBlob = await response.blob();
+        if (audioBlob.size > 0) {
+            const audioUrl = URL.createObjectURL(audioBlob);
+            currentAudio = new Audio(audioUrl);
+            
+            currentAudio.play().catch(err => {
+                if (err.name === 'NotAllowedError') {
+                    console.warn("Click on the page once to enable hover playback.");
+                } else {
+                    console.error("Audio playback error:", err);
+                }
+            });
         }
-
-        // 1. Read array buffer from auto-decompressed response
-        const arrayBuffer = await response.arrayBuffer();
-
-        // 2. Create a clean audio/mpeg blob from the decompressed buffer
-        const cleanAudioBlob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
-
-        if (cleanAudioBlob.size > 0) {
-            // 3. Read as Data URL to bypass blob URL MIME decoding issues
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                currentAudio = new Audio(e.target.result);
-                currentAudio.play().catch(err => console.error("Error playing audio:", err));
-            };
-            reader.readAsDataURL(cleanAudioBlob);
-        } else {
-            console.error("No audio data found in proxy response.");
-        }
-
     } catch (error) {
         console.error("Failed to fetch or play Murf AI audio:", error);
     }
