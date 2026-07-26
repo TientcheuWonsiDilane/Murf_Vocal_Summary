@@ -225,27 +225,26 @@ async function playSummaryAudio(textToSpeak) {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({ error: response.statusText }));
             console.error("Backend Proxy Error:", response.status, response.statusText, errorData);
             throw new Error(`Proxy Error: ${response.statusText}. Details: ${errorData.error || 'Unknown error'}`);
         }
 
-        const data = await response.json();
-        console.log("Response from proxy (Murf AI data):", data);
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
 
-        const audioUrl = data.audioFile || data.audio_url;
-
-        if (audioUrl) {
+        if (audioBlob.size > 0) {
             currentAudio = new Audio(audioUrl);
             currentAudio.play().catch(e => console.error("Error playing audio:", e));
         } else {
-            console.error("No audio URL found in proxy response. Response data:", data);
+            console.error("No audio data found in proxy response.");
         }
 
     } catch (error) {
         console.error("Failed to fetch or play Murf AI audio:", error);
     }
 }
+
 
 function handleSearch(searchQuery) {
     if (currentAudio) {

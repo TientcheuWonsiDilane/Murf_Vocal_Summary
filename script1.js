@@ -31,10 +31,8 @@ if (voiceLanguageSelect) {
     });
 }
 
-// Initial fetch
 fetchBooks();
 
-// Fetch movie backdrops and start slideshow (Books page hero backdrop rotates movie images per user request)
 fetch(`${BACKEND_BASE_URL}/api/movies/popular`)
     .then(res => res.json())
     .then(data => {
@@ -74,22 +72,19 @@ function startBackdropSlideshow(backdrops) {
     const heroBg = document.querySelector('.hero-bg-overlay');
     if (!heroBg) return;
 
-    // Set initial background image
     heroBg.style.backgroundImage = `url('${backdrops[0]}')`;
     heroBg.style.opacity = 0.35;
 
     setInterval(() => {
         backdropIndex = (backdropIndex + 1) % backdrops.length;
 
-        // Fade out
         heroBg.style.opacity = 0;
 
         setTimeout(() => {
-            // Change background image and fade in
             heroBg.style.backgroundImage = `url('${backdrops[backdropIndex]}')`;
             heroBg.style.opacity = 0.35;
-        }, 800); // Wait for fade-out transition (0.8s matching style.css)
-    }, 10000); // 10 seconds interval
+        }, 800); 
+    }, 10000); 
 }
 
 function fetchBooks(append = false) {
@@ -221,8 +216,8 @@ async function playSummaryAudio(textToSpeak) {
     }
 
     try {
-        const text = textToSpeak.length > 800 ? textToSpeak.substring(0, 800) + "..." : textToSpeak;
-        console.log("Requesting audio from Murf AI via proxy for:", text.substring(0, 100) + "...");
+        const limitedText = textToSpeak.length > 800 ? textToSpeak.substring(0, 800) + "..." : textToSpeak;
+        console.log("Requesting audio from Murf AI via proxy for:", limitedText.substring(0, 100) + "...");
 
         const response = await fetch(`${BACKEND_BASE_URL}/api/murf/generate-audio`, {
             method: 'POST',
@@ -230,30 +225,28 @@ async function playSummaryAudio(textToSpeak) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                text: text,
+                text: limitedText,
                 voice_id: selectedMurfVoiceId,
-                rate: -15,
+                rate: -20,
                 pitch: 0,
                 style: 'conversational',
             }),
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({ error: response.statusText }));
             console.error("Backend Proxy Error:", response.status, response.statusText, errorData);
             throw new Error(`Proxy Error: ${response.statusText}. Details: ${errorData.error || 'Unknown error'}`);
         }
 
-        const data = await response.json();
-        console.log("Murf AI response (via proxy):", data);
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
 
-        const audioUrl = data.audioFile || data.audio_url;
-
-        if (audioUrl) {
+        if (audioBlob.size > 0) {
             currentAudio = new Audio(audioUrl);
             currentAudio.play().catch(e => console.error("Error playing audio:", e));
         } else {
-            console.error("No audio URL found in Murf AI response. Response data:", data);
+            console.error("No audio data found in proxy response.");
         }
 
     } catch (error) {
@@ -261,7 +254,7 @@ async function playSummaryAudio(textToSpeak) {
     }
 }
 
-// Bind navbar and body searches
+
 function handleSearch(searchQuery) {
     if (currentAudio) {
         currentAudio.pause();
@@ -273,7 +266,6 @@ function handleSearch(searchQuery) {
     currentQuery = searchQuery;
     currentPage = 1;
 
-    // Clear sidebar highlights since we are doing a text search
     genreRadios.forEach(radio => {
         radio.checked = false;
     });
@@ -288,7 +280,7 @@ if (navbarForm) {
         const searchItem = navbarSearchInput.value.trim();
         if (searchItem) {
             handleSearch(searchItem);
-            navbarSearchInput.value = searchItem; // preserve text in query bar
+            navbarSearchInput.value = searchItem; 
             if (bodySearchInput) bodySearchInput.value = "";
         }
     });
@@ -306,7 +298,6 @@ if (bodyForm) {
     });
 }
 
-// Click listener on search image icons
 document.querySelectorAll(".search-img").forEach(img => {
     img.addEventListener("click", () => {
         const parentForm = img.closest("form");
@@ -316,7 +307,6 @@ document.querySelectorAll(".search-img").forEach(img => {
     });
 });
 
-// Bind Category Sidebar Radio filters
 genreRadios.forEach(radio => {
     radio.addEventListener("change", (e) => {
         if (e.target.checked) {
@@ -330,7 +320,6 @@ genreRadios.forEach(radio => {
             currentQuery = "";
             currentPage = 1;
 
-            // Reset text searches
             if (navbarSearchInput) navbarSearchInput.value = "";
             if (bodySearchInput) bodySearchInput.value = "";
 
@@ -339,7 +328,6 @@ genreRadios.forEach(radio => {
     });
 });
 
-// Bind pagination Load More Button
 if (loadMoreBtn) {
     loadMoreBtn.addEventListener("click", () => {
         currentPage++;
