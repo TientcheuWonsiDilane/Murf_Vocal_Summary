@@ -89,7 +89,7 @@ function startBackdropSlideshow(backdrops) {
             heroBg.style.opacity = 0.35;
         }, 800); 
     }, 10000); 
-} // <-- FIXED: Added missing closing bracket here
+} 
 
 function fetchMovies(append = false) {
     let url = "";
@@ -137,8 +137,8 @@ function returnMovie(url, append = false) {
                 const div_card = document.createElement('div');
                 div_card.setAttribute('class', 'card');
 
-                // FIXED: Changed 'centre' to 'center'
                 const center_tag = document.createElement('center');
+                center_tag.style.position = 'relative'; // Required for loader positioning
 
                 const image = document.createElement('img');
                 image.setAttribute('class', 'thumbnail');
@@ -170,17 +170,20 @@ function returnMovie(url, append = false) {
                         console.log(`Mouse hovered over: ${element.title}`);
                         const movieOverview = `${element.title}. [pause 0.4s] Summary: [pause 0.8s] ` + image.dataset.overview;
                         if (image.dataset.overview && image.dataset.overview !== "No description available.") {
-                            playSummaryAudio(movieOverview);
+                            playSummaryAudio(movieOverview, center_tag); 
                         } else {
                             console.log(`No overview summary available for: ${element.title}`);
                         }
                     }, 1000);
                 });
 
-                image.addEventListener('mouseleave', () => {
+               image.addEventListener('mouseleave', () => {
                     if (timeoutId) {
                         clearTimeout(timeoutId);
                     }
+                    
+                    center_tag.querySelectorAll('.audio-overlay').forEach(el => el.remove());
+                    
                     if (currentAudio) {
                         currentAudio.pause();
                         currentAudio.currentTime = 0;
@@ -199,16 +202,26 @@ function returnMovie(url, append = false) {
         });
 }
 
-async function playSummaryAudio(textToSpeak) {
+async function playSummaryAudio(textToSpeak, targetContainer) {
     if (currentAudio) {
         currentAudio.pause();
         currentAudio.currentTime = 0;
         currentAudio = null;
     }
 
+    document.querySelectorAll('.audio-overlay').forEach(el => el.remove());
+
     if (!selectedMurfVoiceId) {
         console.error("No Murf voice selected.");
         return;
+    }
+
+    const loader = document.createElement('div');
+    loader.className = 'audio-overlay loading';
+    loader.innerHTML = '<div class="spinner"></div>';
+    
+    if (targetContainer) {
+        targetContainer.appendChild(loader);
     }
 
     try {
@@ -226,23 +239,36 @@ async function playSummaryAudio(textToSpeak) {
             }),
         });
 
+        loader.remove();
+
         if (!response.ok) throw new Error(`Proxy Error: ${response.statusText}`);
 
-        // Fast binary conversion directly into a Blob URL
         const audioBlob = await response.blob();
+        
         if (audioBlob.size > 0) {
             const audioUrl = URL.createObjectURL(audioBlob);
             currentAudio = new Audio(audioUrl);
             
-            currentAudio.play().catch(err => {
-                if (err.name === 'NotAllowedError') {
-                    console.warn("Click on the page once to enable hover playback.");
-                } else {
-                    console.error("Audio playback error:", err);
+            currentAudio.play().then(() => {
+                const playingIndicator = document.createElement('div');
+                playingIndicator.className = 'audio-overlay playing';
+                playingIndicator.innerHTML = '<div class="bar"></div><div class="bar"></div><div class="bar"></div>';
+                
+                if (targetContainer) {
+                    targetContainer.appendChild(playingIndicator);
                 }
+
+                currentAudio.addEventListener('ended', () => {
+                    playingIndicator.remove();
+                });
+
+            }).catch(e => {
+                console.warn("Audio play blocked by autoplay policy. Click the page first.");
             });
         }
+
     } catch (error) {
+        loader.remove(); 
         console.error("Failed to fetch or play Murf AI audio:", error);
     }
 }
