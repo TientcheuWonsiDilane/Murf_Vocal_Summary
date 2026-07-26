@@ -5,9 +5,8 @@ let selectedMurfVoiceId = "en-US-natalie";
 let currentAudio = null;
 let hoverTimeout = null;
 
-// Paging and filter states
 let currentPage = 1;
-let currentGenre = "popular"; // "popular" means discover popular, otherwise it holds a genre ID string
+let currentGenre = "popular"; 
 let currentQuery = "";
 
 const main = document.getElementById("section");
@@ -32,10 +31,8 @@ if (voiceLanguageSelect) {
     });
 }
 
-// Initial fetch
 fetchMovies();
 
-// Fetch backdrops and start slideshow
 fetch(`${BACKEND_BASE_URL}/api/movies/popular`)
     .then(res => res.json())
     .then(data => {
@@ -75,25 +72,20 @@ function startBackdropSlideshow(backdrops) {
     const heroBg = document.querySelector('.hero-bg-overlay');
     if (!heroBg) return;
 
-    // Set initial background image
     heroBg.style.backgroundImage = `url('${backdrops[0]}')`;
     heroBg.style.opacity = 0.35;
 
     setInterval(() => {
         backdropIndex = (backdropIndex + 1) % backdrops.length;
 
-        // Fade out
         heroBg.style.opacity = 0;
 
         setTimeout(() => {
-            // Change background image and fade in
             heroBg.style.backgroundImage = `url('${backdrops[backdropIndex]}')`;
             heroBg.style.opacity = 0.35;
-        }, 800); // Wait for fade-out transition (0.8s matching style.css)
-    }, 10000); // 10 seconds interval
-}
+        }, 800); 
+    }, 10000); 
 
-// Fetch movies based on current filters, search query, and pagination state
 function fetchMovies(append = false) {
     let url = "";
     if (currentQuery) {
@@ -255,7 +247,6 @@ async function playSummaryAudio(textToSpeak) {
     }
 }
 
-// Bind navbar and body searches
 function handleSearch(searchQuery) {
     if (currentAudio) {
         currentAudio.pause();
@@ -267,7 +258,6 @@ function handleSearch(searchQuery) {
     currentQuery = searchQuery;
     currentPage = 1;
 
-    // Clear sidebar highlights since we are doing a text search
     genreRadios.forEach(radio => {
         radio.checked = false;
     });
@@ -282,7 +272,7 @@ if (navbarForm) {
         const searchItem = navbarSearchInput.value.trim();
         if (searchItem) {
             handleSearch(searchItem);
-            navbarSearchInput.value = searchItem; // preserve text in query bar
+            navbarSearchInput.value = searchItem; 
             if (bodySearchInput) bodySearchInput.value = "";
         }
     });
@@ -300,7 +290,6 @@ if (bodyForm) {
     });
 }
 
-// Click listener on search image icons
 document.querySelectorAll(".search-img").forEach(img => {
     img.addEventListener("click", () => {
         const parentForm = img.closest("form");
@@ -310,7 +299,6 @@ document.querySelectorAll(".search-img").forEach(img => {
     });
 });
 
-// Bind Category Sidebar Radio filters
 genreRadios.forEach(radio => {
     radio.addEventListener("change", (e) => {
         if (e.target.checked) {
@@ -324,7 +312,6 @@ genreRadios.forEach(radio => {
             currentQuery = "";
             currentPage = 1;
 
-            // Reset text searches
             if (navbarSearchInput) navbarSearchInput.value = "";
             if (bodySearchInput) bodySearchInput.value = "";
 
@@ -333,10 +320,10 @@ genreRadios.forEach(radio => {
     });
 });
 
-// Bind pagination Load More Button
 if (loadMoreBtn) {
     loadMoreBtn.addEventListener("click", () => {
         currentPage++;
         fetchMovies(true);
     });
+}
 }

@@ -204,7 +204,6 @@ function getFallbackBooks(query, page) {
   
   if (query) {
     const term = query.toLowerCase();
-    // Check for subject format e.g. "subject:science"
     if (term.startsWith("subject:")) {
       const subject = term.replace("subject:", "").trim();
       filtered = filtered.filter(b => 
@@ -230,7 +229,6 @@ function getFallbackBooks(query, page) {
   };
 }
 
-// ENDPOINTS
 app.get('/api/movies/popular', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const genre = req.query.genre;
@@ -309,6 +307,8 @@ app.get('/api/books/search', async (req, res) => {
   }
 });
 
+import zlib from 'zlib';
+
 app.post('/api/murf/generate-audio', async (req, res) => {
     const { text, voice_id, rate, pitch, style } = req.body;
 
@@ -330,13 +330,31 @@ app.post('/api/murf/generate-audio', async (req, res) => {
                 'Content-Type': 'application/json'
             }
         });
-        res.json(murfResponse.data);
+
+        const generatedAudioUrl = murfResponse.data.audioUrl;
+
+        if (!generatedAudioUrl) {
+            return res.status(500).json({ error: 'Murf API did not return an audio URL.' });
+        }
+
+        const audioStreamResponse = await axios({
+            method: 'get',
+            url: generatedAudioUrl,
+            responseType: 'stream'
+        });
+
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Content-Encoding', 'gzip');
+
+        const gzip = zlib.createGzip();
+        audioStreamResponse.data.pipe(gzip).pipe(res);
+
     } catch (error) {
         console.error("Error generating Murf AI audio:", error.message);
-        // Fallback to simple speech synthesis url or standard error response
         res.status(error.response?.status || 500).json({ error: 'Failed to generate audio', details: error.message });
     }
 });
+
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
